@@ -6,10 +6,11 @@ import { Appointment } from './appointment.entity';
 import { UsersModule } from '../users/users.module';
 import { NotificationsModule } from 'src/notifications/notifications.module';
 import { AvailabilityModule } from 'src/availability/availability.module';
+import { Availability } from 'src/availability/availability.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Appointment]), 
+    TypeOrmModule.forFeature([Appointment, Availability]), 
     UsersModule,
     NotificationsModule,
     AvailabilityModule,

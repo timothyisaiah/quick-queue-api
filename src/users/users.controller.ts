@@ -1,10 +1,12 @@
 import { Controller, Get, Query } from '@nestjs/common';
+import { UsersService } from './users.service';
 
 @Controller('users')
 export class UsersController {
-    @Get('by-role')
-    getUsersByRole(@Query('role') role: string) {
-        // Logic to fetch users by role will go here
-        return `Fetching users with role: ${role}`;
-    }
+  constructor(private readonly usersService: UsersService) {}
+
+  @Get()
+  async findAll(@Query('role') role?: string) {
+    return this.usersService.findAll(role);
+  }
 }

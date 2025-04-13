@@ -5,41 +5,57 @@ import { Appointment } from './appointment.entity';
 import { UsersService } from '../users/users.service';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { AvailabilityService } from 'src/availability/availability.service';
+import { Availability } from 'src/availability/availability.entity';
 
 @Injectable()
 export class AppointmentsService {
     constructor(
         @InjectRepository(Appointment)
         private appointmentRepo: Repository<Appointment>,
+      
+        @InjectRepository(Availability)
+        private availabilityRepo: Repository<Availability>,
+      
         private usersService: UsersService,
         private notificationsService: NotificationsService,
         private availabilityService: AvailabilityService,
-    ) { }
+      ) {}
+      
 
+    // New service method signature
     async requestAppointment(body: any, user: any) {
-        const { providerId, time } = body;
-        
-        // Get full provider entity
+        const { providerId, availabilityId } = body;
+
         const provider = await this.usersService.findOne(providerId);
         if (!provider || provider.role !== 'provider') {
             throw new BadRequestException('Invalid provider');
         }
 
-        // ✅ Get full client entity from DB
         const client = await this.usersService.findOne(user.id);
         if (!client) {
             throw new BadRequestException('Invalid client');
         }
 
-        const requestedTime = new Date(time);
+        // 👇 Fetch availability slot
+        const availability = await this.availabilityRepo.findOne({
+            where: { id: availabilityId },
+        });
 
-        // ✅ Check if provider is available at the requested time
-        const isAvailable = await this.availabilityService.isProviderAvailable(providerId, requestedTime);
-        if (!isAvailable) {
-            throw new BadRequestException('Provider is not available at the requested time');
+        if (!availability) {
+            throw new BadRequestException('Invalid availability slot');
         }
 
-        // ✅ Check if the client has another appointment at the same time
+        const requestedTime = availability.start;
+
+        const isAvailable = await this.availabilityService.isProviderAvailable(
+            providerId,
+            requestedTime
+        );
+
+        if (!isAvailable) {
+            throw new BadRequestException('Provider is not available at that time');
+        }
+
         const clientConflict = await this.appointmentRepo.findOne({
             where: {
                 client: { id: client.id },
@@ -47,7 +63,6 @@ export class AppointmentsService {
             },
         });
 
-        // ✅ Check if the provider has another appointment at the same time
         const providerConflict = await this.appointmentRepo.findOne({
             where: {
                 provider: { id: provider.id },
@@ -56,7 +71,7 @@ export class AppointmentsService {
         });
 
         if (clientConflict || providerConflict) {
-            throw new BadRequestException('Time slot is already booked');
+            throw new BadRequestException('Time slot already booked');
         }
 
         const appointment = this.appointmentRepo.create({
@@ -73,6 +88,7 @@ export class AppointmentsService {
 
         return this.appointmentRepo.save(appointment);
     }
+
 
 
 

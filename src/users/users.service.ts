@@ -28,4 +28,14 @@ export class UsersService {
       .where("id = :id", { id: userId })
       .execute();
   }
+
+  async findAll(role?: string): Promise<User[]> {
+    if (role) {
+      return this.repo.find({
+        where: { role: role as 'client' | 'provider' },
+      });
+    }
+    return this.repo.find();
+  }
+  
 }
